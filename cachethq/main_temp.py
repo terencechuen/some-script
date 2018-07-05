@@ -1,11 +1,19 @@
+import sys
+
 import json
+import requests
 from datetime import datetime, timedelta
 
-import requests
+try:
+    config_content = open(sys.path[1])
+except Exception as e:
+    print(e)
+    sys.exit(0)
+else:
+    config_dict = json.loads(config_content)
 
-zbx_api_url = 'http://zabbix.t.com/api_jsonrpc.php'
-es6_api_url = 'http://es6-node1.t.com:9200/'
-cachethq_url = 'https://status.ngx.hk/api/v1/'
+cachethq_url = config_dict['config_main']['cachethq_url']
+cachethq_api_key = config_dict['config_main']['cachethq_api_key']
 
 
 def get_datetime():
@@ -25,23 +33,23 @@ def get_datetime():
     return output_dict
 
 
-def zbx_login(zbx_username, zbx_passwd, zbx_id):
+def zbx_login(zbx_url, zbx_usrname, zbx_pawd):
     payload = {
         "jsonrpc": "2.0",
         "method": "user.login",
         "params": {
-            "user": zbx_username,
-            "password": zbx_passwd
+            "user": zbx_usrname,
+            "password": zbx_pawd
         },
-        "id": zbx_id,
+        "id": 1,
     }
     headers = {'content-type': 'application/json'}
-    req_run = requests.post(zbx_api_url, data=json.dumps(payload), headers=headers)
+    req_run = requests.post(zbx_url, data=json.dumps(payload), headers=headers)
     req_content = json.loads(req_run.text)
     return req_content
 
 
-def zbx_logout(zbx_login_id, zbx_login_token):
+def zbx_logout(zbx_url, zbx_login_id, zbx_login_token):
     payload = {
         "jsonrpc": "2.0",
         "method": "user.logout",
@@ -50,12 +58,12 @@ def zbx_logout(zbx_login_id, zbx_login_token):
         "auth": zbx_login_token
     }
     headers = {'content-type': 'application/json'}
-    req_run = requests.post(zbx_api_url, data=json.dumps(payload), headers=headers)
+    req_run = requests.post(zbx_url, data=json.dumps(payload), headers=headers)
     req_content = json.loads(req_run.text)
     return req_content
 
 
-def get_zbx_item_value(zbx_token, zbx_item_id):
+def get_zbx_item_value(zbx_url, zbx_token, zbx_item_id):
     payload = {
         "jsonrpc": "2.0",
         "method": "history.get",
@@ -71,13 +79,13 @@ def get_zbx_item_value(zbx_token, zbx_item_id):
         "id": 1
     }
     headers = {'content-type': 'application/json'}
-    req_run = requests.post(zbx_api_url, data=json.dumps(payload), headers=headers)
+    req_run = requests.post(zbx_url, data=json.dumps(payload), headers=headers)
     req_content = json.loads(req_run.text)
     req_value = req_content['result'][0]['value']
     return str(req_value)
 
 
-def get_number_of_visits(es_index_name, es_gte, es_lte):
+def get_number_of_visits(es_url, es_index_name, es_gte, es_lte):
     payload = {
         "size": 0,
         "_source": {
@@ -107,7 +115,7 @@ def get_number_of_visits(es_index_name, es_gte, es_lte):
         }
     }
     headers = {'content-type': 'application/json'}
-    req_run = requests.post(es6_api_url + es_index_name + '/_search', data=json.dumps(payload), headers=headers)
+    req_run = requests.post(es_url + es_index_name + '/_search', data=json.dumps(payload), headers=headers)
     req_content = json.loads(req_run.text)
     req_value = req_content['hits']['total']
     return str(req_value)
@@ -127,7 +135,31 @@ def cachethq_metrics_add_point(api_token, metric_id, metric_value, metric_timest
     headers = {'X-Cachet-Token': api_token}
     req_run = requests.request('POST', req_url, data=payload, headers=headers)
     req_content = json.loads(req_run.text)
+    print(req_content)
     return req_content
+
+
+def run_zbx(config_json, time_now):
+    zbx_api_url = config_json['zbx_api_url']
+    zbx_username = config_json['zbx_username']
+    zbx_passwd = config_json['zbx_passwd']
+    zbx_item_id = config_json['zbx_item_id']
+    metric_id = config_json['metric_id']
+
+    login_content = zbx_login(zbx_api_url, zbx_username, zbx_passwd)
+    zbx_token = login_content['result']
+    item_value = get_zbx_item_value(zbx_api_url, zbx_token, zbx_item_id)
+    zbx_logout(zbx_api_url, login_content['id'], zbx_token)
+    cachethq_metrics_add_point(cachethq_api_key, metric_id, item_value, time_now[0:10])
+
+
+def run_es6(config_json, time_now, time_old):
+    es6_api_url = config_json['es6_api_url']
+    es6_index = config_json['es6_index']
+    metric_id = config_json['metric_id']
+
+    item_value = get_number_of_visits(es6_api_url, es6_index, time_old, time_now)
+    cachethq_metrics_add_point(cachethq_api_key, metric_id, item_value, time_now[0:10])
 
 
 def run_main():
@@ -135,15 +167,11 @@ def run_main():
     timestamp_now = timestamp_dict['timestamp_now']
     timestamp_old = timestamp_dict['timestamp_old']
 
-    login_content = zbx_login('admin', 'zabbix', timestamp_now)
-    zbx_token = login_content['result']
-    item_value = get_zbx_item_value(zbx_token, 31712)
-    zbx_logout(login_content['id'], zbx_token)
-    cachethq_metrics_add_point('Cachet_token', 1, item_value, timestamp_now[0:10])
-
-    item_value = get_number_of_visits('public-ngx-alias', timestamp_old,
-                                      timestamp_now)
-    cachethq_metrics_add_point('Cachet_token', 2, item_value, timestamp_now[0:10])
+    for i in config_dict['config']:
+        if i['services'] == 'zbx':
+            run_zbx(i, timestamp_now)
+        elif i['services'] == 'es6':
+            run_es6(i, timestamp_now, timestamp_old)
 
 
 if __name__ == "__main__":
