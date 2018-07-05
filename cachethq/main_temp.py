@@ -5,7 +5,7 @@ import requests
 from datetime import datetime, timedelta
 
 try:
-    config_content = open(sys.path[1])
+    config_content = open(sys.path[0]+'/config.json')
 except Exception as e:
     print(e)
     sys.exit(0)
