@@ -6,7 +6,11 @@
 
 ## 依赖
 本脚本使用python3编写，需要安装以下依赖包
-* requests
+* requests    
+
+可通过以下命令安装：    
+    
+    pip3 install requests
 
 ## 配置文件
 * config_main：请填写cachethq的API地址与API Key
