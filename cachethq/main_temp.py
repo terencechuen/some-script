@@ -10,7 +10,7 @@ except Exception as e:
     print(e)
     sys.exit(0)
 else:
-    config_dict = json.loads(config_content)
+    config_dict = json.load(config_content)
 
 cachethq_url = config_dict['config_main']['cachethq_url']
 cachethq_api_key = config_dict['config_main']['cachethq_api_key']
