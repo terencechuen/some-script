@@ -1,0 +1,6 @@
+{
+  "domain": "ngx.hk",
+  "port": "10050",
+  "record": "a",
+  "proto": "tcp"
+}
