@@ -46,8 +46,17 @@ def get_info_from_chain():
 
 # 往INPUT链插入规则
 def append_rule_to_chain(src_ip, dst_port, proto):
-    shell_append_rule = 'iptables -A INPUT -p ' + str(proto) + ' --dport ' + str(dst_port) + ' -s ' + str(
-        src_ip) + ' -j ACCEPT -m comment --comment "DDNS iptables rule"'
+    if proto == '-1':
+        shell_append_rule = 'iptables -A INPUT  -s ' + str(
+            src_ip) + ' -j ACCEPT -m comment --comment "DDNS iptables rule"'
+    else:
+        if ',' in dst_port:
+            dst_port = dst_port.replace(' ', '')
+            shell_append_rule = 'iptables -A INPUT -p ' + str(proto) + ' -m multiport --dport ' + str(
+                dst_port) + ' -s ' + str(src_ip) + ' -j ACCEPT -m comment --comment "DDNS iptables rule"'
+        else:
+            shell_append_rule = 'iptables -A INPUT -p ' + str(proto) + ' --dport ' + str(dst_port) + ' -s ' + str(
+                src_ip) + ' -j ACCEPT -m comment --comment "DDNS iptables rule"'
 
     run_shell = subprocess.Popen(shell_append_rule, shell=True, stdout=subprocess.PIPE)
     shell_output = run_shell.communicate()[0]
@@ -74,8 +83,7 @@ def del_rule_from_chain(rule_id):
 # 从DNS服务器获取特定解析类型的IP地址
 def get_dns_record(ddns_domain, ddns_record):
     output_list = []
-    dns_resolver = resolver.Resolver()
-    dns_answers = dns_resolver.query(ddns_domain, ddns_record)
+    dns_answers = resolver.query(ddns_domain, ddns_record)
     if len(dns_answers) is not 0:
         for rdata in dns_answers:
             output_list.append(str(rdata))
@@ -85,7 +93,6 @@ def get_dns_record(ddns_domain, ddns_record):
 if __name__ == '__main__':
     config_dict = read_config()  # 读取配置文件
     dns_list = get_dns_record(config_dict['domain'], config_dict['record'])  # 获取IP地址列表
-    dns_list_need_remove = []  # 建立中间列表
     chain_dict = get_info_from_chain()  # 获取现有规则
 
     '''

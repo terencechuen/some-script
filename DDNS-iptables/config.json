@@ -1,6 +1,6 @@
 {
   "domain": "ngx.hk",
-  "port": "10050",
+  "port": "10050,80,443,222",
   "record": "a",
-  "proto": "tcp"
+  "proto": "udp"
 }
