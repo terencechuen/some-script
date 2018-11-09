@@ -1,0 +1,10 @@
+{
+  "email": {
+    "host": "outlook.office365.com",
+    "port": "993",
+    "username": "contact@ngx.hk",
+    "passwd": ""
+  },
+  "subj_prefix": "NGX Proj第二期抽奖活动",
+  "subj_count": 7
+}
