@@ -52,19 +52,21 @@ def get_uid_list(folder_name):
 # 获取邮件内容与标题（subject）
 def get_mail_data(folder_name, mail_uid):
     comm.select(folder_name)
-    response, mail_data = comm.fetch(mail_uid, '(RFC822)')
+    response, mail_data = comm.uid('fetch', mail_uid, '(RFC822)')
+
     mail_data = email.message_from_string(mail_data[0][1].decode())
+
     msg_subj = email.header.decode_header(mail_data['Subject'])
     msg_subj = msg_subj[0][0].decode(msg_subj[0][1])
 
     msg_sender = email.header.decode_header(mail_data['From'])
 
-    try:
-        len(msg_sender[1])
-    except IndexError:
+    if len(msg_sender) == 1:
         msg_sender = msg_sender[0][0].strip("'").split('<')[1][:-1]
-    else:
+    elif len(msg_sender) == 2:
         msg_sender = msg_sender[1][0].decode()[2:-1]
+    else:
+        msg_sender = msg_sender[2][0].decode()[2:-1]
 
     return mail_data, msg_subj, msg_sender
 
