@@ -45,7 +45,9 @@ mail_folder = ['INBOX/NGXProj&eyxOjGcfYr1ZVm07Uqg-']
 def get_uid_list(folder_name):
     comm.select(folder_name)
     response, uid_list = comm.uid('search', None, 'ALL')
+    print(uid_list)
     uid_list = uid_list[0].decode().split(' ')
+    print(uid_list)
     return uid_list
 
 

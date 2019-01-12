@@ -12,8 +12,8 @@ config_dict = json.load(config_content)
 
 cachethq_url = config_dict['config_main']['cachethq_url']
 cachethq_api_key = config_dict['config_main']['cachethq_api_key']
+msg_style = config_dict['config_main']['msg_style']
 cachethq_host_dict = config_dict['host']
-msg_style = config_dict['msg_style']
 
 temp_file_path = sys.path[0] + '/cachethq_status_updater.temp'
 
@@ -23,7 +23,7 @@ def zabbix_msg_handler():
     zbx_msg_dict = dict()
     for i in zbx_msg_list:
         i_list = i.split('::')
-        zbx_msg_dict[i_list[0]] = i_list[1].strip('\r')
+        zbx_msg_dict[i_list[0]] = i_list[1].strip('\r').strip(' ')
     return zbx_msg_dict
 
 
@@ -100,7 +100,7 @@ def update_incidents(api_token, inc_id, inc_msg, inc_status):
         "status": inc_status
     }
     headers = {'X-Cachet-Token': api_token}
-    req_run = requests.request('PUT', req_url, data=payload, headers=headers)
+    req_run = requests.request('POST', req_url, data=payload, headers=headers)
     req_content = json.loads(req_run.text)
     return req_content
 
@@ -149,7 +149,7 @@ def run():
     elif 'resolved_time' in msg_dict:
         incidents_msg = '告警恢复时间：' + msg_dict['resolved_time']
         incidents_id = r_w_d_temp_file('r', msg_dict['host_name'], msg_dict['event_id'], 0)[0]
-        update_incidents(cachethq_api_key, incidents_id, incidents_msg, 1)
+        update_incidents(cachethq_api_key, incidents_id, incidents_msg, 4)
         r_w_d_temp_file('d', msg_dict['host_name'], msg_dict['event_id'], 0)
     else:
         pass
