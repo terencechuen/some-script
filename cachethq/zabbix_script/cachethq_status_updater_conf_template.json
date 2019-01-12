@@ -1,7 +1,8 @@
 {
   "config_main": {
     "cachethq_url": "https://status.ngx.hk/api/v1/",
-    "cachethq_api_key": ""
+    "cachethq_api_key": "",
+    "msg_style":"simple"
   },
   "host": {
     "t620-idrac": 8

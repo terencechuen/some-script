@@ -13,6 +13,7 @@ config_dict = json.load(config_content)
 cachethq_url = config_dict['config_main']['cachethq_url']
 cachethq_api_key = config_dict['config_main']['cachethq_api_key']
 cachethq_host_dict = config_dict['host']
+msg_style = config_dict['msg_style']
 
 temp_file_path = sys.path[0] + '/cachethq_status_updater.temp'
 
@@ -67,6 +68,14 @@ def r_w_d_temp_file(act_type, host_name, event_id, incident_id):
         pass
 
 
+def get_component_name(comp_id):
+    req_url = cachethq_url + 'components/' + str(comp_id)
+    req_run = requests.request('GET', req_url)
+    req_content = json.loads(req_run.text)
+    comp_name = req_content['data']['name']
+    return comp_name
+
+
 def create_incidents(api_token, inc_name, inc_msg, inc_status, inc_visible, comp_id, comp_status):
     req_url = cachethq_url + 'incidents'
     payload = {
@@ -84,15 +93,11 @@ def create_incidents(api_token, inc_name, inc_msg, inc_status, inc_visible, comp
     return inc_id
 
 
-def update_incidents(api_token, inc_id, inc_name, inc_msg, inc_status, inc_visible, com_id, comp_status):
-    req_url = cachethq_url + 'incidents/' + str(inc_id)
+def update_incidents(api_token, inc_id, inc_msg, inc_status):
+    req_url = cachethq_url + 'incidents/' + str(inc_id) + '/updates'
     payload = {
-        "name": inc_name,
         "message": inc_msg,
-        "status": inc_status,
-        "visible": inc_visible,
-        "component_id": com_id,
-        "component_status": comp_status
+        "status": inc_status
     }
     headers = {'X-Cachet-Token': api_token}
     req_run = requests.request('PUT', req_url, data=payload, headers=headers)
@@ -108,11 +113,27 @@ def write_to_temp(temp_content):
 
 def run():
     msg_dict = zabbix_msg_handler()
+    comp_id = cachethq_host_dict[msg_dict['host_name']]
+    comp_name = get_component_name(comp_id)
+
     if 'start_time' in msg_dict:
-        incidents_name = 'Host ' + msg_dict['host_name'] + ' has an ' + msg_dict['severity'] + ' level alarm.'
-        incidents_msg = 'Event ID: ' + str(msg_dict['event_id']) + \
-                        ', Event name: ' + msg_dict['event_name'] + \
-                        ', Event start time: ' + msg_dict['start_time']
+
+        if msg_style == "Extended":
+            # 告警标题样式1
+            incidents_name = '主机名为：' + msg_dict['host_name'] + ' 的服务器出现等级为：' + msg_dict['severity'] + ' 的告警！'
+            # 告警内容样式1
+            incidents_msg = '告警事件ID：' + str(msg_dict['event_id']) + '\n' + \
+                            '告警事件名称： ' + msg_dict['event_name'] + '\n' + \
+                            '告警发生事件：' + msg_dict['start_time'] + '\n' + \
+                            '我们已经开始排查异常并着手修复工作，请持续关注最新动态。若有其他问题，请及时联系管理员。'
+        else:
+            # 告警标题样式2
+            incidents_name = '系统组件：' + comp_name + ' 出现等级为：' + msg_dict['severity'] + ' 的告警！'
+            # 告警内容样式2
+            incidents_msg = '告警事件ID: ' + str(msg_dict['event_id']) + '\n' + \
+                            '告警发生事件: ' + msg_dict['start_time'] + '\n' + \
+                            '我们已经开始排查异常并着手修复工作，请持续关注最新动态。若有其他问题，请及时联系管理员。'
+
         if msg_dict['severity'] is 'Not classified' or 'Information':
             component_status = 2
         elif msg_dict['severity'] is 'Warning' or 'Average':
@@ -122,18 +143,13 @@ def run():
         else:
             component_status = 1
 
-        incidents_id = create_incidents(cachethq_api_key, incidents_name, incidents_msg, 2, 1,
-                                        cachethq_host_dict[msg_dict['host_name']], component_status)
+        incidents_id = create_incidents(cachethq_api_key, incidents_name, incidents_msg, 2, 1, comp_id,
+                                        component_status)
         r_w_d_temp_file('w', msg_dict['host_name'], msg_dict['event_id'], incidents_id)
     elif 'resolved_time' in msg_dict:
-        incidents_name = 'The alarm of the ' + msg_dict['severity'] + ' level of host ' + msg_dict[
-            'host_name'] + ' has been released.'
-        incidents_msg = 'Event ID: ' + str(msg_dict['event_id']) + \
-                        ', Event name: ' + msg_dict['event_name'] + \
-                        ', Event resolved time: ' + msg_dict['resolved_time']
+        incidents_msg = '告警恢复时间：' + msg_dict['resolved_time']
         incidents_id = r_w_d_temp_file('r', msg_dict['host_name'], msg_dict['event_id'], 0)[0]
-        update_incidents(cachethq_api_key, incidents_id, incidents_name, incidents_msg, 4, 1,
-                         cachethq_host_dict[msg_dict['host_name']], 1)
+        update_incidents(cachethq_api_key, incidents_id, incidents_msg, 1)
         r_w_d_temp_file('d', msg_dict['host_name'], msg_dict['event_id'], 0)
     else:
         pass
