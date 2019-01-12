@@ -133,6 +133,8 @@ def run():
         get_incidents_status = r_w_d_temp_file('r', msg_dict['host_name'], msg_dict['event_id'], 0)
         incidents_id = get_incidents_status[0]
 
+        # 如果临时文件中没有zabbix的even id，则恢复组件的状态，否则仅修改incidents状态而不恢复组件状态。
+        # 在2.4版本中可以在incidents中追加incidents情况，但该版本尚未release，所以未适配该版本。
         if get_incidents_status[1] == 0:
             update_incidents(cachethq_api_key, incidents_id, incidents_name, 4, 1, comp_id, 1)
         else:
