@@ -7,16 +7,20 @@ import json
 # 接收传入内容
 msg = sys.argv[1]
 
+# 读取并格式化配置文件
 config_content = open(sys.path[0] + '/cachethq_status_updater_conf.json')
 config_dict = json.load(config_content)
 
+# 配置信息赋值
 cachethq_url = config_dict['config_main']['cachethq_url']
 cachethq_api_key = config_dict['config_main']['cachethq_api_key']
 cachethq_host_dict = config_dict['host']
 
+# 指定临时文件
 temp_file_path = sys.path[0] + '/cachethq_status_updater.temp'
 
 
+# 字典化传入的zabbix信息
 def zabbix_msg_handler():
     zbx_msg_list = msg.split('\n')
     zbx_msg_dict = dict()
@@ -26,6 +30,7 @@ def zabbix_msg_handler():
     return zbx_msg_dict
 
 
+# 查改删临时文件
 def r_w_d_temp_file(act_type, host_name, event_id, incident_id):
     try:
         r = open(temp_file_path, 'r')
@@ -67,6 +72,7 @@ def r_w_d_temp_file(act_type, host_name, event_id, incident_id):
         pass
 
 
+# 新增事件
 def create_incidents(api_token, inc_name, inc_msg, inc_status, inc_visible, comp_id, comp_status):
     req_url = cachethq_url + 'incidents'
     payload = {
@@ -84,6 +90,7 @@ def create_incidents(api_token, inc_name, inc_msg, inc_status, inc_visible, comp
     return inc_id
 
 
+# 更新事件
 def update_incidents(api_token, inc_id, inc_name, inc_status, inc_visible, com_id, comp_status):
     req_url = cachethq_url + 'incidents/' + str(inc_id)
     payload = {
@@ -99,19 +106,16 @@ def update_incidents(api_token, inc_id, inc_name, inc_status, inc_visible, com_i
     return req_content
 
 
-def write_to_temp(temp_content):
-    r = open(sys.path[0] + '/temp.temp', 'w')
-    r.write(temp_content)
-    r.close()
-
-
+# 运行
 def run():
     msg_dict = zabbix_msg_handler()
     comp_id = cachethq_host_dict[msg_dict['host_name']]
 
+    # 如果start_time在zabbix信息字典中，则说明有告警
     if 'start_time' in msg_dict:
         incidents_name = '出现等级为：' + msg_dict['severity'] + ' 的告警！'
         incidents_msg = '事件ID: ' + str(msg_dict['event_id']) + '，告警时间：' + msg_dict['start_time']
+
         if msg_dict['severity'] is 'Not classified' or 'Information':
             component_status = 2
         elif msg_dict['severity'] is 'Warning' or 'Average':
@@ -126,8 +130,13 @@ def run():
         r_w_d_temp_file('w', msg_dict['host_name'], msg_dict['event_id'], incidents_id)
     elif 'resolved_time' in msg_dict:
         incidents_name = '等级为：' + msg_dict['severity'] + ' 的告警已恢复'
-        incidents_id = r_w_d_temp_file('r', msg_dict['host_name'], msg_dict['event_id'], 0)[0]
-        update_incidents(cachethq_api_key, incidents_id, incidents_name, 4, 1, comp_id, 1)
+        get_incidents_status = r_w_d_temp_file('r', msg_dict['host_name'], msg_dict['event_id'], 0)
+        incidents_id = get_incidents_status[0]
+
+        if get_incidents_status[1] == 0:
+            update_incidents(cachethq_api_key, incidents_id, incidents_name, 4, 1, comp_id, 1)
+        else:
+            update_incidents(cachethq_api_key, incidents_id, incidents_name, 2, 1, comp_id, 1)
         r_w_d_temp_file('d', msg_dict['host_name'], msg_dict['event_id'], 0)
     else:
         pass
@@ -135,4 +144,3 @@ def run():
 
 if __name__ == '__main__':
     run()
-
