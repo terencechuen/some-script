@@ -1,8 +1,7 @@
 #/bin/sh
 
 ######## hostname ########
-LOCAL_IPADDR=`hostname -I | cut -d ' ' -f 1`
-PTR_ANSWER=`dig +short -x $LOCAL_IPADDR`
+PTR_ANSWER=`dig +short -x 10.1.1.141`
 
 if [ -z $PTR_ANSWER ] ; then
 	hostnamectl set-hostname $(cat /sys/class/net/ens192/address | sed 's/://g' | cut -c 7-12)
