@@ -1,0 +1,22 @@
+{
+  "config_main": {
+    "cachethq_url": "https://status.ngx.hk/api/v1/",
+    "cachethq_api_key": ""
+  },
+  "config": [
+    {
+      "services": "es6",
+      "es6_api_url": "http://es6-node1.t.com:9200/",
+      "metric_id": "2",
+      "es6_index": "index_1"
+    },
+    {
+      "services": "zbx",
+      "zbx_api_url": "http://zabbix.t.com/api_jsonrpc.php",
+      "zbx_username": "admin",
+      "zbx_passwd": "zabbix",
+      "zbx_item_id": "3000",
+      "metric_id": "1"
+    }
+  ]
+}

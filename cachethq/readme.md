@@ -14,9 +14,14 @@
     
     pip3 install requests
 
-## 0x03 elasticsearch_script 配置文件
+## 0x03 initiative_script 配置文件
 * config_main：请填写cachethq的API地址与API Key
-* config：以列表的形式记录数据源的信息，支持多个数据源，脚本会自动遍历该列表，根据配置信息逐一更新Cachet的图表
+* config：以列表的形式记录数据源的信息，支持elasticsearch与zabbix数据源，脚本会自动遍历该列表，根据配置信息逐一更新Cachet的图表
+  * services：填写数据源类型，zabbix为zbx，elasticsearch为es6；  
+  * zbx_api_url：填写zabbix的api地址；  
+  * zbx_username：填写zabbix的用户名；  
+  * zbx_passwd： 填写zabbix的密码；  
+  * zbx_item_id：填写需要获取的zabbix item id值；  
   * es6_api_url：请填写elasticsearch的API地址；  
   * metric_id：cachet图表的id；  
   * es6_index：请填写elasticsearch index的名称。  
@@ -35,14 +40,14 @@
   
 我们可以将常见但低危的告警设置为Not classified 或 Information，这样就不会在cachet中显示，避免不必要的麻烦。  
 
-## 0x05 elasticsearch_script 运行
+## 0x05 initiative_script 运行
 该脚本直接执行即可：    
     
     /usr/bin/python3 ./main.py    
     
 建议将其加入crontab，实现自动更新，如：    
     
-    */1 * * * * root /usr/bin/python3 /usr/local/services_data/shell/cachethq/main_temp.py  
+    */1 * * * * root /usr/bin/python3 /usr/local/services_data/shell/cachethq/main.py  
   
 ## 0x06 zabbix_script 运行  
 该脚本不可直接执行，需配合zabbix使用，具体请参考以下链接：  
