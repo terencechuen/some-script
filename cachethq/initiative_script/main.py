@@ -149,7 +149,6 @@ def cachethq_metrics_add_point(api_token, metric_id, metric_value, metric_timest
     headers = {'X-Cachet-Token': api_token}
     req_run = requests.request('POST', req_url, data=payload, headers=headers)
     req_content = json.loads(req_run.text)
-    print(req_content)
     return req_content
 
 
@@ -171,7 +170,7 @@ def run():
         if i['services'] == 'zbx':
             run_zbx(i, timestamp_now)
         elif i['services'] == 'es6':
-            run_es6(i, timestamp_old, timestamp_now)
+            run_es6(i, timestamp_now, timestamp_old)
 
 
 if __name__ == "__main__":
