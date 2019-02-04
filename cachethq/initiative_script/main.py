@@ -19,7 +19,7 @@ cachethq_api_key = config_dict['config_main']['cachethq_api_key']
 def get_datetime():
     datetime_now = datetime.today().strftime("%Y-%m-%d %H:%M:00")
     datetime_now = datetime.strptime(datetime_now, '%Y-%m-%d %H:%M:%S')
-    datetime_old = datetime_now - timedelta(minutes=1)
+    datetime_old = datetime_now - timedelta(minutes=3)
 
     timestamp_now = datetime_now.timestamp()
     timestamp_now = int(timestamp_now * 1000)
@@ -171,7 +171,7 @@ def run():
         if i['services'] == 'zbx':
             run_zbx(i, timestamp_now)
         elif i['services'] == 'es6':
-            run_es6(i, timestamp_now, timestamp_old)
+            run_es6(i, timestamp_old, timestamp_now)
 
 
 if __name__ == "__main__":
