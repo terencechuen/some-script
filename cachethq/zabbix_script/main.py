@@ -15,7 +15,7 @@ config_dict = json.load(config_content)
 cachethq_url = config_dict['config_main']['cachethq_url']
 cachethq_api_key = config_dict['config_main']['cachethq_api_key']
 cachethq_host_dict = config_dict['host']
-zabbix_alarm_level = int(config_dict['alarm_level'])
+conf_alarm_level = int(config_dict['alarm_level'])
 
 # 指定临时文件
 temp_file_path = sys.path[0] + '/cachethq_status_updater.temp'
@@ -108,13 +108,15 @@ def update_incidents(api_token, inc_id, inc_name, inc_status, inc_visible, com_i
 
 
 def get_alarm_level(i_alarm_level):
-    if i_alarm_level is 'Not classified' or 'Information':
+    if i_alarm_level == 'Not classified':
         return 0
-    elif i_alarm_level is 'Warning':
+    elif i_alarm_level == 'Information':
+        return 0
+    elif i_alarm_level == 'Warning':
         return 2
-    elif i_alarm_level is 'Average':
+    elif i_alarm_level == 'Average':
         return 3
-    elif i_alarm_level is 'High' or 'Disaster':
+    elif i_alarm_level == 'High' or 'Disaster':
         return 4
     else:
         return 1
@@ -133,14 +135,14 @@ def run():
         alarm_level = get_alarm_level(msg_dict['severity'])
 
         # 如果设定告警阈值为-1，则将'Not classified' or 'Information'的告警等级加2。
-        if zabbix_alarm_level is -1:
-            if alarm_level is 0:
+        if conf_alarm_level == -1:
+            if alarm_level == 0:
                 alarm_level = 2
             else:
                 pass
 
         # 如果zabbix的告警值大于配置文件中设定的告警阈值，则调用cachet函数，更新组件状态。
-        if alarm_level > zabbix_alarm_level:
+        if alarm_level > conf_alarm_level:
             incidents_id = create_incidents(cachethq_api_key, incidents_name, incidents_msg, 2, 1, comp_id,
                                             alarm_level)
             r_w_d_temp_file('w', msg_dict['host_name'], msg_dict['event_id'], incidents_id)
