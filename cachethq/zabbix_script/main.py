@@ -15,7 +15,7 @@ config_dict = json.load(config_content)
 cachethq_url = config_dict['config_main']['cachethq_url']
 cachethq_api_key = config_dict['config_main']['cachethq_api_key']
 cachethq_host_dict = config_dict['host']
-zabbix_alarm_level = config_dict['alarm_level']
+zabbix_alarm_level = int(config_dict['alarm_level'])
 
 # 指定临时文件
 temp_file_path = sys.path[0] + '/cachethq_status_updater.temp'
@@ -150,15 +150,19 @@ def run():
     elif 'resolved_time' in msg_dict:
         incidents_name = '等级为：' + msg_dict['severity'] + ' 的告警已恢复'
         get_incidents_status = r_w_d_temp_file('r', msg_dict['host_name'], msg_dict['event_id'], 0)
-        incidents_id = get_incidents_status[0]
 
-        # 如果临时文件中没有zabbix的even id，则恢复组件的状态，否则仅修改incidents状态而不恢复组件状态。
-        # 在2.4版本中可以在incidents中追加incidents情况，但该版本尚未release，所以未适配该版本。
-        if get_incidents_status[1] == 1:
-            update_incidents(cachethq_api_key, incidents_id, incidents_name, 4, 1, comp_id, 1)
+        if get_incidents_status is False:
+            pass
         else:
-            update_incidents(cachethq_api_key, incidents_id, incidents_name, 2, 1, comp_id, 1)
-        r_w_d_temp_file('d', msg_dict['host_name'], msg_dict['event_id'], 0)
+            incidents_id = get_incidents_status[0]
+
+            # 如果临时文件中没有zabbix的even id，则恢复组件的状态，否则仅修改incidents状态而不恢复组件状态。
+            # 在2.4版本中可以在incidents中追加incidents情况，但该版本尚未release，所以未适配该版本。
+            if get_incidents_status[1] == 1:
+                update_incidents(cachethq_api_key, incidents_id, incidents_name, 4, 1, comp_id, 1)
+            else:
+                update_incidents(cachethq_api_key, incidents_id, incidents_name, 2, 1, comp_id, 1)
+            r_w_d_temp_file('d', msg_dict['host_name'], msg_dict['event_id'], 0)
     else:
         pass
 
