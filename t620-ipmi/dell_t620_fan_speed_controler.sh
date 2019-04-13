@@ -12,7 +12,7 @@ temp_threshold="56,60,65"
 fan_speed="30,50,70,100"
 
 #日志文件路径
-log_path='t620_ipmi_fan_speed_controller.log'
+log_path='/var/log/t620_ipmi_fan_speed_controller.log'
 
 # 检查是否已安装bc
 if [ ! `rpm -qa | grep -e ^bc -e net-snmp-utils | wc -l` -eq 2 ]; then
