@@ -8,8 +8,8 @@ snmp_ver="2c"
 snmp_com="public"
 
 # 三个温度值将转速划分为四个区间
-temp_threshold="56,60,65"
-fan_speed="30,50,70,100"
+temp_threshold="58,60,65"
+fan_speed="30,40,70,100"
 
 #日志文件路径
 log_path='/var/log/t620_ipmi_fan_speed_controller.log'
@@ -67,7 +67,7 @@ fan_speed_range=$fan_speed_now fan_speed=$fan_speed msg=\"Cooling fan maintains 
     exit 0
   else
     # 获取最后5条日志中的CPU温度值并计算均值
-    for i in $(tail -n 5 $log_path);
+    for i in $(tail -n 10 $log_path);
     do
       i_tmp=$(echo "$i" | sed -e 's/^cpu_temp=\(.*\)/\1/g;t;d')
       if [ "$i_tmp" ]; then
@@ -88,10 +88,12 @@ fan_speed_range=$speed_range fan_speed=$fan_speed msg=\"The log file does not ex
 fi
 
 # 若日志文件存在，但需要降低转速，则需要进行判断温度是否在合适的范围
-# 当 “(最近10分钟的温度均值-最新CPU温度均值)/最新CPU温度均值” 小于或等于0.05，方可降低转速
-temp_calc=$(echo "scale=2; ($last_few_min_cpu_temp_avg - $calc_avg_temp)/$calc_avg_temp" | bc)
+# 当 “(最近10分钟的温度均值-最新CPU温度均值)/最新CPU温度均值” 大于0且小于0.03时，方可降低转速
+#temp_calc=$(echo "scale=2; ($last_few_min_cpu_temp_avg - $calc_avg_temp)/$calc_avg_temp" | bc)
+temp_calc=$[$last_few_min_cpu_temp_avg - $calc_avg_temp]
 
-if [ "$(echo "$temp_calc > 0.05" | bc)" -eq 1 ]; then
+#if [ `echo "0 < $temp_calc" | bc` -eq 1 -a `echo "$temp_calc < 0.03" | bc` -eq 1 ]; then
+if [ "$temp_calc" -le "-1" ]; then
   ipmitool -I lanplus -H $ipmi_host -U $ipmi_user -P $ipmi_passwd raw 0x30 0x30 0x02 0xff "$speed_hex"
   echo "$(date '+%Y-%m-%d %H:%M:%S') cpu_temp=$calc_avg_temp inlet_temp=$inlet_temp \
 fan_speed_range=$speed_range fan_speed=$fan_speed msg=\"Cooling fan reduces speed, $temp_calc\"" >> $log_path
