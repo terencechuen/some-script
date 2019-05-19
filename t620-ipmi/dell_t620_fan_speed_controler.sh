@@ -57,6 +57,7 @@ if [ -f $log_path ]; then
 
   # 若目标区间值大于最后一条日志中的区间值，则立即上调转速，然后写入日志并退出程序
   if [ "$speed_range" -gt "$fan_speed_now" ]; then
+  	ipmitool -I lanplus -H $ipmi_host -U $ipmi_user -P $ipmi_passwd raw 0x30 0x30 0x01 0x00
     ipmitool -I lanplus -H $ipmi_host -U $ipmi_user -P $ipmi_passwd raw 0x30 0x30 0x02 0xff "$speed_hex"
     echo "$(date '+%Y-%m-%d %H:%M:%S') cpu_temp=$calc_avg_temp inlet_temp=$inlet_temp \
 fan_speed_range=$speed_range fan_speed=$fan_speed msg=\"Cooling fan increases speed\"" >> $log_path
@@ -81,6 +82,7 @@ fan_speed_range=$fan_speed_now fan_speed=$fan_speed msg=\"Cooling fan maintains 
   fi
 else
   # 若日志文件不存在，则立即调整转速并写入日志
+  ipmitool -I lanplus -H $ipmi_host -U $ipmi_user -P $ipmi_passwd raw 0x30 0x30 0x01 0x00
   ipmitool -I lanplus -H $ipmi_host -U $ipmi_user -P $ipmi_passwd raw 0x30 0x30 0x02 0xff "$speed_hex"
   echo "$(date '+%Y-%m-%d %H:%M:%S') cpu_temp=$calc_avg_temp inlet_temp=$inlet_temp \
 fan_speed_range=$speed_range fan_speed=$fan_speed msg=\"The log file does not exist, adjust the speed immediately\"" >> $log_path
@@ -94,6 +96,7 @@ temp_calc=$[$last_few_min_cpu_temp_avg - $calc_avg_temp]
 
 #if [ `echo "0 < $temp_calc" | bc` -eq 1 -a `echo "$temp_calc < 0.03" | bc` -eq 1 ]; then
 if [ "$temp_calc" -le "-1" ]; then
+  ipmitool -I lanplus -H $ipmi_host -U $ipmi_user -P $ipmi_passwd raw 0x30 0x30 0x01 0x00
   ipmitool -I lanplus -H $ipmi_host -U $ipmi_user -P $ipmi_passwd raw 0x30 0x30 0x02 0xff "$speed_hex"
   echo "$(date '+%Y-%m-%d %H:%M:%S') cpu_temp=$calc_avg_temp inlet_temp=$inlet_temp \
 fan_speed_range=$speed_range fan_speed=$fan_speed msg=\"Cooling fan reduces speed, $temp_calc\"" >> $log_path
